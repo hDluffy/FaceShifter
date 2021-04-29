@@ -9,6 +9,13 @@ from face_modules.mtcnn import *
 import cv2
 import PIL.Image as Image
 import numpy as np
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--Xs_path', default='./src.jpg', metavar='STR',
+                    help='Xs_path')
+parser.add_argument('-t', '--Xt_path', default='./tag.jpg', metavar='STR',
+                    help='Xt_path')
+args = parser.parse_args()
 
 detector = MTCNN()
 device = torch.device('cuda')
@@ -26,8 +33,8 @@ test_transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-Xs_path = '/home/taotao/Pictures/u=3322705847,3022779128&fm=26&gp=0.jpg'
-Xt_path = '/home/taotao/Pictures/u=3977885541,1855342996&fm=11&gp=0.jpg'
+Xs_path = args.Xs_path
+Xt_path = args.Xt_path
 
 Xs_raw = cv2.imread(Xs_path)
 Xt_raw = cv2.imread(Xt_path)
