@@ -7,12 +7,21 @@ import PIL.Image as Image
 from model import Backbone, Arcface, MobileFaceNet, Am_softmax, l2_norm
 from torchvision import transforms as trans
 import os
+import argparse
 # import libnvjpeg
 # import pickle
 
-img_root_dir = '/media/taotao/958c7d2d-c4ce-4117-a93b-c8a7aa4b88e3/taotao/part1/'
-save_path = '/media/taotao/958c7d2d-c4ce-4117-a93b-c8a7aa4b88e3/taotao/stars_256_0.85/'
+parser = argparse.ArgumentParser()
+parser.add_argument('-s', '--img_root_dir', default='/data2/jiaqing/FaceShifter/img_celeba/', metavar='STR',
+                    help='img_root_dir')
+parser.add_argument('-t', '--save_path', default='/data2/jiaqing/FaceShifter/img_celeba_256/', metavar='STR',
+                    help='save_path')
+args = parser.parse_args()
+#img_root_dir = '/media/taotao/958c7d2d-c4ce-4117-a93b-c8a7aa4b88e3/taotao/part1/'
+#save_path = '/media/taotao/958c7d2d-c4ce-4117-a93b-c8a7aa4b88e3/taotao/stars_256_0.85/'
 # embed_path = '/home/taotao/Downloads/celeb-aligned-256/embed.pkl'
+img_root_dir=args.img_root_dir
+save_path=args.save_path
 
 device = torch.device('cuda:0')
 mtcnn = MTCNN()

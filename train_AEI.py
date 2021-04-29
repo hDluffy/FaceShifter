@@ -11,7 +11,20 @@ import torchvision
 import cv2
 from apex import amp
 import visdom
+import os
+import argparse
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+parser = argparse.ArgumentParser()
+parser.add_argument('-sm', '--saved_models', default='./saved_models/', metavar='STR',
+                    help='saved_models')
+parser.add_argument('-ip', '--images_path', default='/data2/jiaqing/FaceShifter/img_celeba_256/', metavar='STR',
+                    help='images_path')
+parser.add_argument('-sp', '--same_prob', default=0.8, type=float, metavar='F',
+                    help='same_prob')
+parser.add_argument('-lid', '--l_id', default=5, type=float, metavar='F',
+                    help='l_id')
+args = parser.parse_args()
 
 vis = visdom.Visdom(server='127.0.0.1', env='faceshifter', port=8099)
 batch_size = 16
@@ -20,7 +33,7 @@ lr_D = 4e-4
 max_epoch = 2000
 show_step = 10
 save_epoch = 1
-model_save_path = './saved_models/'
+#model_save_path = './saved_models/'
 optim_level = 'O1'
 
 # fine_tune_with_identity = False
@@ -44,8 +57,8 @@ G, opt_G = amp.initialize(G, opt_G, opt_level=optim_level)
 D, opt_D = amp.initialize(D, opt_D, opt_level=optim_level)
 
 try:
-    G.load_state_dict(torch.load('./saved_models/G_latest.pth', map_location=torch.device('cpu')), strict=False)
-    D.load_state_dict(torch.load('./saved_models/D_latest.pth', map_location=torch.device('cpu')), strict=False)
+    G.load_state_dict(torch.load(os.path.join(args.saved_models, 'G_latest.pth'), map_location=torch.device('cpu')), strict=False)
+    D.load_state_dict(torch.load(os.path.join(args.saved_models, 'D_latest.pth'), map_location=torch.device('cpu')), strict=False)
 except Exception as e:
     print(e)
 
@@ -53,7 +66,7 @@ except Exception as e:
     # dataset = FaceEmbed(['../celeb-aligned-256_0.85/', '../ffhq_256_0.85/', '../vgg_256_0.85/', '../stars_256_0.85/'], same_prob=0.5)
 # else:
     # dataset = With_Identity('../washed_img/', 0.8)
-dataset = FaceEmbed(['../celeb-aligned-256_0.85/', '../ffhq_256_0.85/', '../vgg_256_0.85/', '../stars_256_0.85/'], same_prob=0.8)
+dataset = FaceEmbed([args.images_path], same_prob=args.same_prob)
 
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=True)
 
@@ -71,7 +84,7 @@ def hinge_loss(X, positive=True):
 
 def get_grid_image(X):
     X = X[:8]
-    X = torchvision.utils.make_grid(X.detach().cpu(), nrow=X.shape[0]) * 0.5 + 0.5
+    X = torchvision.utils.make_grid(X.detach().cpu(), nrow=X.shape[0]) * 127.5 + 127.5
     return X
 
 
@@ -122,7 +135,7 @@ for epoch in range(0, max_epoch):
 
         L_rec = torch.sum(0.5 * torch.mean(torch.pow(Y - Xt, 2).reshape(batch_size, -1), dim=1) * same_person) / (same_person.sum() + 1e-6)
 
-        lossG = 1*L_adv + 10*L_attr + 5*L_id + 10*L_rec
+        lossG = 1*L_adv + 10*L_attr + args.l_id*L_id + 10*L_rec
         # lossG = 1*L_adv + 10*L_attr + 5*L_id + 10*L_rec
         with amp.scale_loss(lossG, opt_G) as scaled_loss:
             scaled_loss.backward()
