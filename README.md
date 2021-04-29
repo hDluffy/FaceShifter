@@ -8,6 +8,6 @@ Try to reproduce FaceShifter
 cd face_modules
 python preprocess_images.py -s <img_root_dir> -t <save_path>
 
-#train
+# train
 cd ../
 python train_AEI -sm './saved_models' -ip <images_path> -sp 0.8 -lid 5
