@@ -5,8 +5,9 @@ Try to reproduce FaceShifter </br>
 在face_modules/preprocess_images.py和train_AEI.py中添加argparse解析，方便外部设置参数
 
 # make data
-cd face_modules </br>
-python preprocess_images.py -s <img_root_dir> -t <save_path>
+
+''cd face_modules </br>
+python preprocess_images.py -s <img_root_dir> -t <save_path>''
 
 # train
 cd ../ </br>
