@@ -168,12 +168,15 @@ for epoch in range(0, max_epoch):
         if iteration % show_step == 0:
             image = make_image(Xs, Xt, Y)
             vis.image(image[::-1, :, :], opts={'title': 'result'}, win='result')
-            cv2.imwrite('./gen_images/latest.jpg', image.transpose([1,2,0]))
+            cv2.imwrite('./gen_images/latest_%d.jpg'% (iteration), image.transpose([1,2,0]))
         print(f'epoch: {epoch}    {iteration} / {len(dataloader)}')
         print(f'lossD: {lossD.item()}    lossG: {lossG.item()} batch_time: {batch_time}s')
         print(f'L_adv: {L_adv.item()} L_id: {L_id.item()} L_attr: {L_attr.item()} L_rec: {L_rec.item()}')
         if iteration % 1000 == 0:
             torch.save(G.state_dict(), './saved_models/G_latest.pth')
             torch.save(D.state_dict(), './saved_models/D_latest.pth')
+        if iteration % 10000 == 0:
+            torch.save(G.state_dict(), './saved_models/G_%d.pth'% (iteration))
+            torch.save(D.state_dict(), './saved_models/D_%d.pth'% (iteration))
 
 
