@@ -17,3 +17,6 @@ python train_AEI -sm './saved_models' -ip <images_path> -sp 0.8 -lid 5
 
 # demo
 python inference_demo.py -s ./src.jpg -t ./tag.jpg
+
+
+## 2022/10/20

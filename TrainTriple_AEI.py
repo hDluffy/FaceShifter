@@ -1,6 +1,6 @@
 from network.AEI_Net import *
 from network.MultiscaleDiscriminator import *
-from utils.Dataset import FaceEmbed, With_Identity
+from utils.DatasetTriple import FaceEmbed, With_Identity
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from face_modules.model import Backbone, Arcface, MobileFaceNet, Am_softmax, l2_norm
@@ -17,7 +17,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-sm', '--saved_models', default='./saved_models/', metavar='STR',
                     help='saved_models')
-parser.add_argument('-ip', '--images_path', default='/data2/jiaqing/FaceShifter/img_celeba_256/', metavar='STR',
+parser.add_argument('-ip', '--images_path', default='/data2/jiaqing/FaceShifter/FaceSwap/', metavar='STR',
                     help='images_path')
 parser.add_argument('-sp', '--same_prob', default=0.8, type=float, metavar='F',
                     help='same_prob')
@@ -63,8 +63,8 @@ if args.retrain :
     except Exception as e:
         print(e)
 
-G = torch.nn.DataParallel(G, device_ids=(0,1,2,3))
-D = torch.nn.DataParallel(D, device_ids=(0,1,2,3))
+G = torch.nn.DataParallel(G, device_ids=(0,1))
+D = torch.nn.DataParallel(D, device_ids=(0,1))
 # if not fine_tune_with_identity:
     # dataset = FaceEmbed(['../celeb-aligned-256_0.85/', '../ffhq_256_0.85/', '../vgg_256_0.85/', '../stars_256_0.85/'], same_prob=0.5)
 # else:
@@ -106,13 +106,15 @@ for epoch in range(0, max_epoch):
     # torch.cuda.empty_cache()
     for iteration, data in enumerate(dataloader):
         start_time = time.time()
-        Xs, Xt, same_person = data
+        Xs, Xt, Xr = data
         Xs = Xs.to(device)
         Xt = Xt.to(device)
+        Xr = Xr.to(device)
         # embed = embed.to(device)
         with torch.no_grad():
-            embed, Xs_feats = arcface(F.interpolate(Xs[:, :, 19:237, 19:237], [112, 112], mode='bilinear', align_corners=True))
-        same_person = same_person.to(device)
+            #embed, Xs_feats = arcface(F.interpolate(Xs[:, :, 19:237, 19:237], [112, 112], mode='bilinear', align_corners=True))
+            embed, Xs_feats = arcface(F.interpolate(Xs, [112, 112], mode='bilinear', align_corners=True))
+        #same_person = same_person.to(device)
         #diff_person = (1 - same_person)
 
         # train G
@@ -126,19 +128,21 @@ for epoch in range(0, max_epoch):
             L_adv += hinge_loss(di[0], True)
         
 
-        Y_aligned = Y[:, :, 19:237, 19:237]
+        #Y_aligned = Y[:, :, 19:237, 19:237]
+        Y_aligned = Y
         ZY, Y_feats = arcface(F.interpolate(Y_aligned, [112, 112], mode='bilinear', align_corners=True))
         L_id =(1 - torch.cosine_similarity(embed, ZY, dim=1)).mean()
 
-        Y_attr = G.get_attr(Y)
+        Y_attr = G.module.get_attr(Y)
         L_attr = 0
         for i in range(len(Xt_attr)):
             L_attr += torch.mean(torch.pow(Xt_attr[i] - Y_attr[i], 2).reshape(batch_size, -1), dim=1).mean()
         L_attr /= 2.0
 
-        L_rec = torch.sum(0.5 * torch.mean(torch.pow(Y - Xt, 2).reshape(batch_size, -1), dim=1) * same_person) / (same_person.sum() + 1e-6)
+        #L_rec = torch.sum(0.5 * torch.mean(torch.pow(Y - Xt, 2).reshape(batch_size, -1), dim=1) * same_person) / (same_person.sum() + 1e-6)
+        L_rec = L1(Y,Xr)
 
-        lossG = 1*L_adv + 10*L_attr + args.l_id*L_id + 10*L_rec
+        lossG = 1*L_adv + 10*L_attr + args.l_id*L_id + 20*L_rec
         # lossG = 1*L_adv + 10*L_attr + 5*L_id + 10*L_rec
         with amp.scale_loss(lossG, opt_G) as scaled_loss:
             scaled_loss.backward()
